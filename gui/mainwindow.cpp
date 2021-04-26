@@ -1451,8 +1451,8 @@ QString getTextOfMetrics(vector<int> m_){
                     "Макс. уровень вложенности циклов for: " + QString::number(m_[25]) + "\n" +
                     "Макс. уровень вложенности циклов while: " + QString::number(m_[26]) + "\n" +
                     "Макс. уровень вложенности циклов do-while: " + QString::number(m_[27]) + "\n" +
-                    "Макс. уровень вложенности конструкции if-else: " + QString::number(m_[28]) + "\n" +
-                    "Макс. уровень вложенности конструкции switch-case-default: " + QString::number(m_[29]) + "\n";
+                    "Макс. уровень вложенности конструкций if-else: " + QString::number(m_[28]) + "\n" +
+                    "Макс. уровень вложенности конструкций switch-case-default: " + QString::number(m_[29]) + "\n";
     return str_;
 }
 
