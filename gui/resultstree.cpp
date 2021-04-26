@@ -16,10 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "resultstree.h"
-
 #include <QApplication>
+#include <QWidget>
 #include <QDebug>
+#include <QString>
+#include <QStringList>
 #include <QList>
 #include <QMap>
 #include <QVariant>
@@ -34,11 +35,12 @@
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QUrl>
-#include <QKeyEvent>
-#include <QSettings>
+#include <QContextMenuEvent>
+#include <QModelIndex>
 #include "common.h"
 #include "erroritem.h"
 #include "applicationlist.h"
+#include "resultstree.h"
 #include "report.h"
 #include "application.h"
 #include "projectfile.h"

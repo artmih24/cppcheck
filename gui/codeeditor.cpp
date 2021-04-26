@@ -1,7 +1,6 @@
-#include "codeeditor.h"
-
+#include <QtWidgets>
 #include <QShortcut>
-#include <QPainter>
+#include "codeeditor.h"
 #include "codeeditorstyle.h"
 
 

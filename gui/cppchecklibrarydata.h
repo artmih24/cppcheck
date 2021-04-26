@@ -22,8 +22,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
-
-class QIODevice;
+#include <QIODevice>
 
 class CppcheckLibraryData {
 public:

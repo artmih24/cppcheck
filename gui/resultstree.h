@@ -22,6 +22,9 @@
 
 #include <QTreeView>
 #include <QStandardItemModel>
+#include <QStandardItem>
+#include <QSettings>
+#include <QContextMenuEvent>
 #include "errortypes.h"
 #include "showtypes.h"
 
@@ -33,8 +36,6 @@ class QModelIndex;
 class QWidget;
 class QItemSelectionModel;
 class ThreadHandler;
-class QContextMenuEvent;
-class QSettings;
 
 /// @addtogroup GUI
 /// @{

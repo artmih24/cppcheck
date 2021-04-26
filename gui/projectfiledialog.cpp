@@ -16,14 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "projectfiledialog.h"
-
+#include <QWidget>
+#include <QDialog>
+#include <QString>
+#include <QStringList>
 #include <QFileInfo>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QDir>
 #include <QSettings>
+#include <QProcess>
+#include <QListView>
 #include "common.h"
 #include "newsuppressiondialog.h"
+#include "projectfiledialog.h"
 #include "checkthread.h"
 #include "projectfile.h"
 #include "library.h"
@@ -270,6 +276,10 @@ void ProjectFileDialog::loadFromProjectFile(const ProjectFile *projectFile)
     mUI.mCheckUnusedTemplates->setChecked(projectFile->getCheckUnusedTemplates());
     mUI.mMaxCtuDepth->setValue(projectFile->getMaxCtuDepth());
     mUI.mMaxTemplateRecursion->setValue(projectFile->getMaxTemplateRecursion());
+    if (projectFile->clangParser)
+        mUI.mBtnClangParser->setChecked(true);
+    else
+        mUI.mBtnCppcheckParser->setChecked(true);
     mUI.mBtnSafeClasses->setChecked(projectFile->safeChecks.classes);
     mUI.mBtnBugHunting->setChecked(projectFile->bugHunting);
     setExcludedPaths(projectFile->getExcludedPaths());
@@ -337,6 +347,7 @@ void ProjectFileDialog::loadFromProjectFile(const ProjectFile *projectFile)
         mUI.mAddonMisra->setText(mUI.mAddonMisra->text() + ' ' + tr("(no rule texts file)"));
     }
 
+    mUI.mToolClangAnalyzer->setChecked(projectFile->getClangAnalyzer());
     mUI.mToolClangTidy->setChecked(projectFile->getClangTidy());
     if (CheckThread::clangTidyCmd().isEmpty()) {
         mUI.mToolClangTidy->setText(tr("Clang-tidy (not found)"));
@@ -363,6 +374,7 @@ void ProjectFileDialog::saveToProjectFile(ProjectFile *projectFile) const
     projectFile->setCheckPaths(getCheckPaths());
     projectFile->setExcludedPaths(getExcludedPaths());
     projectFile->setLibraries(getLibraries());
+    projectFile->clangParser = mUI.mBtnClangParser->isChecked();
     projectFile->safeChecks.classes = mUI.mBtnSafeClasses->isChecked();
     projectFile->bugHunting = mUI.mBtnBugHunting->isChecked();
     if (mUI.mComboBoxPlatform->currentText().endsWith(".xml"))
@@ -402,6 +414,7 @@ void ProjectFileDialog::saveToProjectFile(ProjectFile *projectFile) const
     if (mUI.mAddonMisra->isChecked())
         list << "misra";
     projectFile->setAddons(list);
+    projectFile->setClangAnalyzer(mUI.mToolClangAnalyzer->isChecked());
     projectFile->setClangTidy(mUI.mToolClangTidy->isChecked());
     projectFile->setTags(mUI.mEditTags->text().split(";", QString::SkipEmptyParts));
 }

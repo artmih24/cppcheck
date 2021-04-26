@@ -16,9 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "printablereport.h"
-
 #include "erroritem.h"
+#include "printablereport.h"
 #include <QDir>
 
 PrintableReport::PrintableReport() :

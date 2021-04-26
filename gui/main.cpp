@@ -18,6 +18,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QTextCodec>
 #include <QMetaType>
 #include <QStringList>
 #include <QSettings>

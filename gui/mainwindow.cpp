@@ -16,19 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mainwindow.h"
-
 #include <QApplication>
 #include <QDebug>
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QDir>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QAction>
 #include <QActionGroup>
 #include <QFile>
 #include <QInputDialog>
-#include <QTimer>
-#include <QSettings>
+#include "mainwindow.h"
 
 #include "cppcheck.h"
 
@@ -636,6 +635,835 @@ void MainWindow::updateVariableContractsTab()
     mUI.mResults->setAddedVariableContracts(added);
 }
 
+int count_variables(QString var_type_, QString source_code_){
+    int cnt = 0;
+    int var_type_str_len = var_type_.length();
+    int j = 0;
+    bool itIsVar = true;
+    bool itIsInArr = false;
+    bool itIsInStr = false;
+    bool itIsInComment = false;
+    bool itIsInCommentL = false;
+    bool itIsChar = false;
+    bool itIsString = false;
+    bool itIsComment = false;
+    bool itIsCommentL = false;
+    for (int i = 0; i < source_code_.length() - (var_type_str_len - 1); i++){
+        //проверка, не содержится ли искомое ключевое слово в комментарии
+        if (source_code_.mid(i, 2) == "/*")
+            itIsComment = true;
+        if (source_code_.mid(i, 2) == "*/")
+            itIsComment = false;
+        if (source_code_.mid(i, 2) == "//")
+            itIsCommentL = true;
+        if (source_code_.mid(i, 1) == "\n")
+            itIsCommentL = false;
+        //проверка, не содержится ли искомое ключевое слово в строке
+        if ((source_code_.mid(i, 1) == '"') && (itIsComment == false) && (itIsCommentL == false))
+            itIsString = !itIsString;
+        //если в коде встретилось ключевое слово, обозначающее тип переменной
+        if ((source_code_.mid(i, var_type_str_len) == var_type_) && (itIsString == false) && (itIsComment == false) && (itIsCommentL == false)){
+            j = i;
+            itIsVar = true;
+            //проверка, функция ли это или нет
+            while (source_code_.mid(j++, 1) != ';')
+                if (source_code_.mid(j, 1) == '(')
+                    itIsVar = false;
+            //если это переменная
+            if (itIsVar == true){
+                itIsInArr = false;
+                itIsInStr = false;
+                itIsInComment = false;
+                itIsInCommentL = false;
+                itIsChar = false;
+                cnt++;
+                while (i++ < j){
+                    //проверка, не находится ли запятая в массиве или в строке или в комментарии, и не является ли она значением символьной переменной
+                    if (source_code_.mid(i, 1) == '{')
+                        itIsInArr = true;
+                    if (source_code_.mid(i, 1) == '}')
+                        itIsInArr = false;
+                    if (source_code_.mid(i, 1) == '"')
+                        itIsInStr = !itIsInStr;
+                    if (source_code_.mid(i, 1) == "'")
+                        itIsChar = !itIsChar;
+                    if (source_code_.mid(i, 2) == "/*")
+                        itIsInComment = true;
+                    if (source_code_.mid(i, 2) == "*/")
+                        itIsInComment = false;
+                    if (source_code_.mid(i, 2) == "//")
+                        itIsInCommentL = true;
+                    if (source_code_.mid(i, 1) == "\n")
+                        itIsInCommentL = false;
+                    if ((source_code_.mid(i, 1) == ',') && (itIsInArr == false) && (itIsInStr == false) && (itIsChar == false) && (itIsInComment == false) && (itIsInCommentL == false))
+                        cnt++;
+                }
+            }
+        }
+    }
+    return cnt;
+}
+
+int count_functions(QString func_type_, QString source_code_){
+    int cnt = 0;
+    int func_type_str_len = func_type_.length();
+    int j = 0;
+    bool itIsFunc = true;
+    bool itIsString = false;
+    bool itIsComment = false;
+    bool itIsCommentL = false;
+    bool itIsFuncDecl = false;
+    bool itIsInStr = false;
+    bool itIsChar = false;
+    bool itIsInComment = false;
+    bool itIsInCommentL = false;
+    bool itIsInStr2 = false;
+    bool itIsChar2 = false;
+    bool itIsInComment2 = false;
+    bool itIsInCommentL2 = false;
+    for (int i = 0; i < source_code_.length() - (func_type_str_len - 1); i++){
+        //проверка, не содержится ли искомая функция в комментарии
+        if (source_code_.mid(i, 2) == "/*")
+            itIsComment = true;
+        if (source_code_.mid(i, 2) == "*/")
+            itIsComment = false;
+        if (source_code_.mid(i, 2) == "//")
+            itIsCommentL = true;
+        if (source_code_.mid(i, 1) == "\n")
+            itIsCommentL = false;
+        //проверка, не содержится ли искомая функция в строке
+        if ((source_code_.mid(i, 1) == '"') && (itIsComment == false) && (itIsCommentL == false))
+            itIsString = !itIsString;
+        if ((source_code_.mid(i, func_type_str_len) == func_type_) && (itIsString == false) && (itIsComment == false) && (itIsCommentL == false)){
+            j = i;
+            itIsFunc = true;
+            itIsFuncDecl = false;
+            itIsInStr = false;
+            itIsInComment = false;
+            itIsInCommentL = false;
+            itIsChar = false;
+            //проверка, функция ли это или нет
+            while (source_code_.mid(j++, 1) != "\n"){
+                //проверка, не находится ли точка с запятой в строке или в комментарии, и не является ли она значением символьной переменной
+                if (source_code_.mid(i, 1) == '"')
+                    itIsInStr = !itIsInStr;
+                if (source_code_.mid(i, 1) == "'")
+                    itIsChar = !itIsChar;
+                if (source_code_.mid(i, 2) == "/*")
+                    itIsInComment = true;
+                if (source_code_.mid(i, 2) == "*/")
+                    itIsInComment = false;
+                if (source_code_.mid(i, 2) == "//")
+                    itIsInCommentL = true;
+                if (source_code_.mid(i, 1) == "\n")
+                    itIsInCommentL = false;
+                if ((source_code_.mid(j, 1) == ';') && (itIsInStr == false) && (itIsChar == false) && (itIsInComment == false) && (itIsInCommentL == false))
+                    itIsFuncDecl = true;
+            }
+            if (itIsFuncDecl == false){
+                j = i;
+                while (source_code_.mid(j++, 1) != "\n"){
+                    itIsInStr2 = false;
+                    itIsInComment2 = false;
+                    itIsInCommentL2 = false;
+                    itIsChar2 = false;
+                    //проверка, не находится ли открывающая круглая скобка в строке или в комментарии, и не является ли она значением символьной переменной
+                    if (source_code_.mid(i, 1) == '"')
+                        itIsInStr2 = !itIsInStr2;
+                    if (source_code_.mid(i, 1) == "'")
+                        itIsChar2 = !itIsChar2;
+                    if (source_code_.mid(i, 2) == "/*")
+                        itIsInComment2 = true;
+                    if (source_code_.mid(i, 2) == "*/")
+                        itIsInComment2 = false;
+                    if (source_code_.mid(i, 2) == "//")
+                        itIsInCommentL2 = true;
+                    if (source_code_.mid(i, 1) == "\n")
+                        itIsInCommentL2 = false;
+                    if ((source_code_.mid(j, 1) == '(') && (itIsInStr2 == false) && (itIsChar2 == false) && (itIsInComment2 == false) && (itIsInCommentL2 == false))
+                        cnt++;
+                }
+            }
+        }
+    }
+    return cnt;
+}
+
+int count_key_words(QString keyword_, QString source_code_){
+    int cnt = 0;
+    int keyword_length = keyword_.length();
+    bool itIsString = false;
+    bool itIsComment = false;
+    bool itIsCommentL = false;
+    for (int i = 0; i < source_code_.length() - (keyword_length - 1); i++){
+        //проверка, не содержится ли искомое ключевое слово в комментарии
+        if (source_code_.mid(i, 2) == "/*")
+            itIsComment = true;
+        if (source_code_.mid(i, 2) == "*/")
+            itIsComment = false;
+        if (source_code_.mid(i, 2) == "//")
+            itIsCommentL = true;
+        if (source_code_.mid(i, 1) == "\n")
+            itIsCommentL = false;
+        //проверка, не содержится ли искомое ключевое слово в строке
+        if (source_code_.mid(i, 1) == '"')
+            itIsString = !itIsString;
+        if ((source_code_.mid(i, keyword_length) == keyword_) && (itIsString == false) && (itIsComment == false) && (itIsCommentL == false))
+            cnt++;
+    }
+    return cnt;
+}
+
+
+#include <algorithm>
+#include <QTextStream>
+#include <iostream>
+using namespace std;
+int count_nest_lvl_of_for(QString file_){
+    QFile input_file(file_);
+    input_file.open(QIODevice::ReadOnly);
+    QString source_code = "";
+    QTextStream in(&input_file);
+    int ind = 0, j = 0;
+    while (!in.atEnd()){
+        QString line = in.readLine();
+        if ((ind = line.indexOf("//")) != -1)
+            line.remove(ind, line.length() - ind);
+        source_code += line + '\n';
+    }
+    input_file.close();
+    QString sourcecode = "";
+    bool inComment = false;
+    bool inString = false;
+    bool itIsChar = false;
+    for (int i = 0; i < source_code.length() - 1; i++){
+        sourcecode += " ";
+        if (source_code.mid(i, 2) == "/*")
+            inComment = true;
+        if (source_code.mid(i, 2) == "*/")
+            inComment = false;
+        if (source_code[i] == '"')
+            inString = !inString;
+        if (source_code[i] == "'")
+            itIsChar = !itIsChar;
+        if ((itIsChar == false) && !(source_code[i] == "'")
+                && (inString == false) && !(source_code[i] == '"')
+                && (inComment == false) && (!(source_code[i] == '*' && source_code[i + 1] == '/') && (i > 0 && !(source_code[i - 1] == '*' && source_code[i] == '/'))))
+            sourcecode += source_code[i];
+    }
+    QRegExp reg("[?!.,:\\s]");
+    sourcecode.replace(reg, "");
+    QList<QString> for_indexes;
+    int in_brackets = 0;
+    for (j = 0; j < sourcecode.length(); j++){
+        if (j == sourcecode.indexOf("(", j))
+            in_brackets++;
+        if (j == sourcecode.indexOf(")", j))
+            in_brackets--;
+        if (j == sourcecode.indexOf("{", j))
+            for_indexes << "{";
+        if (j == sourcecode.indexOf("}", j))
+            for_indexes << "}";
+        if (j == sourcecode.indexOf(";", j))
+            if (in_brackets == 0)
+                for_indexes << ";";
+        if ((j == sourcecode.indexOf(")for(", j)) || (j == sourcecode.indexOf(";for(", j)) || (j == sourcecode.indexOf("{for(", j)) || (j == sourcecode.indexOf("}for(", j)) || (j == sourcecode.indexOf(":for(", j)))
+            for_indexes << "for";
+    }
+    int begin = for_indexes.indexOf("{");
+    for (int i = 0; i <= begin; i++)
+        for_indexes.removeFirst();
+    if (!for_indexes.isEmpty())
+        for_indexes.removeLast();
+    int nest_lvl = 0;
+    QList<int> max_nest_lvls, save_nest_lvls;
+    for (int i = 0; i < for_indexes.length(); i++){
+        if (for_indexes[i] == "for"){
+            //if (brackets_flag == true)
+            nest_lvl++;
+        }
+        if (for_indexes[i] == "{"){
+            save_nest_lvls << nest_lvl;
+        }
+        if (for_indexes[i] == "}"){
+            if (!save_nest_lvls.isEmpty()){
+                nest_lvl = save_nest_lvls.last() - 1;
+                save_nest_lvls.removeLast();
+            }
+            else
+                nest_lvl = 0;
+        }
+        if (for_indexes[i] == ";"){
+            max_nest_lvls << nest_lvl - 1;
+            if (!save_nest_lvls.isEmpty())
+                nest_lvl = save_nest_lvls.last();
+            else
+                nest_lvl = 0;
+        }
+    }
+    /*QString nest_levels_str = "";
+    for (int i = 0; i < max_nest_lvls.length(); i++)
+        nest_levels_str += (QString::number(max_nest_lvls[i]) + ' ');
+    qDebug() << nest_levels_str;*/
+    std::sort(max_nest_lvls.begin(), max_nest_lvls.end());
+    int max = (max_nest_lvls.last() > 0) ? max_nest_lvls.last() : 0;
+    return max;
+}
+
+int count_nest_lvl_of_while(QString file_){
+    QFile input_file(file_);
+    input_file.open(QIODevice::ReadOnly);
+    QString source_code = "";
+    QTextStream in(&input_file);
+    int ind = 0, j = 0;
+    while (!in.atEnd()){
+        QString line = in.readLine();
+        if ((ind = line.indexOf("//")) != -1)
+            line.remove(ind, line.length() - ind);
+        source_code += line + '\n';
+    }
+    input_file.close();
+    QString sourcecode = "";
+    bool inComment = false;
+    bool inString = false;
+    bool itIsChar = false;
+    for (int i = 0; i < source_code.length() - 1; i++){
+        sourcecode += " ";
+        if (source_code.mid(i, 2) == "/*")
+            inComment = true;
+        if (source_code.mid(i, 2) == "*/")
+            inComment = false;
+        if (source_code[i] == '"')
+            inString = !inString;
+        if (source_code[i] == "'")
+            itIsChar = !itIsChar;
+        if ((itIsChar == false) && !(source_code[i] == "'")
+                && (inString == false) && !(source_code[i] == '"')
+                && (inComment == false) && (!(source_code[i] == '*' && source_code[i + 1] == '/') && (i > 0 && !(source_code[i - 1] == '*' && source_code[i] == '/'))))
+            sourcecode += source_code[i];
+    }
+    QRegExp reg("[?!.,:\\s]");
+    sourcecode.replace(reg, "");
+    QList<QString> while_indexes;
+    int in_brackets = 0;
+    for (j = 0; j < sourcecode.length(); j++){
+        if (j == sourcecode.indexOf("(", j))
+            in_brackets++;
+        if (j == sourcecode.indexOf(")", j))
+            in_brackets--;
+        if (j == sourcecode.indexOf("{", j))
+            while_indexes << "{";
+        if (j == sourcecode.indexOf("}", j))
+            while_indexes << "}";
+        if (j == sourcecode.indexOf(";", j))
+            if (in_brackets == 0)
+                while_indexes << ";";
+        if ((j == sourcecode.indexOf(")while(", j)) || (j == sourcecode.indexOf(";while(", j)) || (j == sourcecode.indexOf("{while(", j))
+                || (j == sourcecode.indexOf("}while(", j)) || (j == sourcecode.indexOf(":while(", j)))
+            while_indexes << "while";
+    }
+    int begin = while_indexes.indexOf("{");
+    for (int i = 0; i <= begin; i++)
+        while_indexes.removeFirst();
+    if (!while_indexes.isEmpty())
+        while_indexes.removeLast();
+    /*QString while_str = "";
+    for (int i = 0; i < while_indexes.length(); i++)
+        while_str += (while_indexes[i] + ' ');
+    qDebug() << while_str;*/
+    int nest_lvl = 0;
+    QList<int> max_nest_lvls, save_nest_lvls;
+    for (int i = 0; i < while_indexes.length(); i++){
+        if (while_indexes[i] == "while"){
+            //if (brackets_flag == true)
+            nest_lvl++;
+        }
+        if (while_indexes[i] == "{"){
+            save_nest_lvls << nest_lvl;
+        }
+        if (while_indexes[i] == "}"){
+            if (!save_nest_lvls.isEmpty()){
+                nest_lvl = save_nest_lvls.last() - 1;
+                save_nest_lvls.removeLast();
+            }
+            else
+                nest_lvl = 0;
+        }
+        if (while_indexes[i] == ";"){
+            max_nest_lvls << nest_lvl - 1;
+            if (!save_nest_lvls.isEmpty())
+                nest_lvl = save_nest_lvls.last();
+            else
+                nest_lvl = 0;
+        }
+    }
+    /*QString nest_levels_str = "";
+    for (int i = 0; i < max_nest_lvls.length(); i++)
+        nest_levels_str += (QString::number(max_nest_lvls[i]) + ' ');
+    qDebug() << nest_levels_str;*/
+    std::sort(max_nest_lvls.begin(), max_nest_lvls.end());
+    int max = (max_nest_lvls.last() > 0) ? max_nest_lvls.last() : 0;
+    return max;
+}
+
+int count_nest_lvl_of_do_while(QString file_){
+    QFile input_file(file_);
+    input_file.open(QIODevice::ReadOnly);
+    QString source_code = "";
+    QTextStream in(&input_file);
+    int ind = 0, j = 0;
+    while (!in.atEnd()){
+        QString line = in.readLine();
+        if ((ind = line.indexOf("//")) != -1)
+            line.remove(ind, line.length() - ind);
+        source_code += line + '\n';
+    }
+    input_file.close();
+    QString sourcecode = "";
+    bool inComment = false;
+    bool inString = false;
+    bool itIsChar = false;
+    for (int i = 0; i < source_code.length() - 1; i++){
+        sourcecode += " ";
+        if (source_code.mid(i, 2) == "/*")
+            inComment = true;
+        if (source_code.mid(i, 2) == "*/")
+            inComment = false;
+        if (source_code[i] == '"')
+            inString = !inString;
+        if (source_code[i] == "'")
+            itIsChar = !itIsChar;
+        if ((itIsChar == false) && !(source_code[i] == "'")
+                && (inString == false) && !(source_code[i] == '"')
+                && (inComment == false) && (!(source_code[i] == '*' && source_code[i + 1] == '/') && (i > 0 && !(source_code[i - 1] == '*' && source_code[i] == '/'))))
+            sourcecode += source_code[i];
+    }
+    QRegExp reg("[?!.,:\\s]");
+    sourcecode.replace(reg, "");
+    QList<QString> do_while_indexes;
+    int in_brackets = 0;
+    for (j = 0; j < sourcecode.length(); j++){
+        if (j == sourcecode.indexOf("(", j))
+            in_brackets++;
+        if (j == sourcecode.indexOf(")", j))
+            in_brackets--;
+        if (j == sourcecode.indexOf("{", j))
+            do_while_indexes << "{";
+        if (j == sourcecode.indexOf("}", j))
+            do_while_indexes << "}";
+        if (j == sourcecode.indexOf(";", j))
+            if ((in_brackets == 0) && (sourcecode[j - 1] != ')'))
+                do_while_indexes << ";";
+        if ((j == sourcecode.indexOf(")do", j)) || (j == sourcecode.indexOf(";do", j)) || (j == sourcecode.indexOf("{do", j))
+                || (j == sourcecode.indexOf("}do", j)) || (j == sourcecode.indexOf(":do", j)) || (j == sourcecode.indexOf("dodo", j)))
+            do_while_indexes << "do";
+    }
+    int begin = do_while_indexes.indexOf("{");
+    for (int i = 0; i <= begin; i++)
+        do_while_indexes.removeFirst();
+    if (!do_while_indexes.isEmpty())
+        do_while_indexes.removeLast();
+    /*QString do_while_str = "";
+    for (int i = 0; i < do_while_indexes.length(); i++)
+        do_while_str += (do_while_indexes[i] + ' ');
+    qDebug() << do_while_str;*/
+    int nest_lvl = 0;
+    QList<int> max_nest_lvls, save_nest_lvls;
+    for (int i = 0; i < do_while_indexes.length(); i++){
+        if (do_while_indexes[i] == "do"){
+            //if (brackets_flag == true)
+            nest_lvl++;
+        }
+        if (do_while_indexes[i] == "{"){
+            save_nest_lvls << nest_lvl;
+        }
+        if (do_while_indexes[i] == "}"){
+            if (!save_nest_lvls.isEmpty()){
+                nest_lvl = save_nest_lvls.last() - 1;
+                save_nest_lvls.removeLast();
+            }
+            else
+                nest_lvl = 0;
+        }
+        if (do_while_indexes[i] == ";"){
+            max_nest_lvls << nest_lvl - 1;
+            if (!save_nest_lvls.isEmpty())
+                nest_lvl = save_nest_lvls.last();
+            else
+                nest_lvl = 0;
+        }
+    }
+    /*QString nest_levels_str = "";
+    for (int i = 0; i < max_nest_lvls.length(); i++)
+        nest_levels_str += (QString::number(max_nest_lvls[i]) + ' ');
+    qDebug() << nest_levels_str;*/
+    std::sort(max_nest_lvls.begin(), max_nest_lvls.end());
+    int max = (max_nest_lvls.last() > 0) ? max_nest_lvls.last() : 0;
+    return max;
+}
+
+int count_nest_lvl_of_switch(QString file_){
+    QFile input_file(file_);
+    input_file.open(QIODevice::ReadOnly);
+    QString source_code = "";
+    QTextStream in(&input_file);
+    int ind = 0, j = 0;
+    while (!in.atEnd()){
+        QString line = in.readLine();
+        if ((ind = line.indexOf("//")) != -1)
+            line.remove(ind, line.length() - ind);
+        source_code += line + '\n';
+    }
+    input_file.close();
+    QString sourcecode = "";
+    bool inComment = false;
+    bool inString = false;
+    bool itIsChar = false;
+    for (int i = 0; i < source_code.length() - 1; i++){
+        sourcecode += " ";
+        if (source_code.mid(i, 2) == "/*")
+            inComment = true;
+        if (source_code.mid(i, 2) == "*/")
+            inComment = false;
+        if (source_code[i] == '"')
+            inString = !inString;
+        if (source_code[i] == "'")
+            itIsChar = !itIsChar;
+        if ((itIsChar == false) && !(source_code[i] == "'")
+                && (inString == false) && !(source_code[i] == '"')
+                && (inComment == false) && (!(source_code[i] == '*' && source_code[i + 1] == '/') && (i > 0 && !(source_code[i - 1] == '*' && source_code[i] == '/'))))
+            sourcecode += source_code[i];
+    }
+    QRegExp reg("[?!.,:\\s]");
+    sourcecode.replace(reg, "");
+    QList<QString> switch_indexes;
+    int in_brackets = 0;
+    for (j = 0; j < sourcecode.length(); j++){
+        if (j == sourcecode.indexOf("(", j))
+            in_brackets++;
+        if (j == sourcecode.indexOf(")", j))
+            in_brackets--;
+        if (j == sourcecode.indexOf("{", j))
+            switch_indexes << "{";
+        if (j == sourcecode.indexOf("}", j))
+            switch_indexes << "}";
+        if (j == sourcecode.indexOf(";", j))
+            if (in_brackets == 0)
+                switch_indexes << ";";
+        if ((j == sourcecode.indexOf(";switch(", j)) || (j == sourcecode.indexOf("{switch(", j)) || (j == sourcecode.indexOf("}switch(", j))
+                || (j == sourcecode.indexOf(")switch(", j)) || (j == sourcecode.indexOf(":switch(", j)))
+            switch_indexes << "switch";
+    }
+    int begin = switch_indexes.indexOf("{");
+    for (int i = 0; i <= begin; i++)
+        switch_indexes.removeFirst();
+    if (!switch_indexes.isEmpty())
+        switch_indexes.removeLast();
+    int nest_lvl = 0;
+    QList<int> max_nest_lvls, save_nest_lvls;
+    for (int i = 0; i < switch_indexes.length(); i++){
+        if (switch_indexes[i] == "switch"){
+            //if (brackets_flag == true)
+            nest_lvl++;
+        }
+        if (switch_indexes[i] == "{"){
+            save_nest_lvls << nest_lvl;
+        }
+        if (switch_indexes[i] == "}"){
+            if (!save_nest_lvls.isEmpty()){
+                nest_lvl = save_nest_lvls.last();
+                save_nest_lvls.removeLast();
+            }
+            else
+                nest_lvl = 0;
+        }
+        if (switch_indexes[i] == ";"){
+            max_nest_lvls << nest_lvl - 1;
+            if (!save_nest_lvls.isEmpty())
+                nest_lvl = save_nest_lvls.last();
+            else
+                nest_lvl = 0;
+        }
+    }
+    std::sort(max_nest_lvls.begin(), max_nest_lvls.end());
+    int max = (max_nest_lvls.last() > 0) ? max_nest_lvls.last() : 0;
+    return max;
+}
+
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <queue>
+#include <stack>
+#include <iomanip>
+#include <sstream>
+using namespace std;
+
+enum ttype_if_else
+{
+    tif,
+    telse,
+    tsemi,
+    topen,
+    tclose
+};
+
+int count_nest_lvl_of_if_else(QString file_){
+    QFile input_file(file_);
+    input_file.open(QIODevice::ReadOnly);
+    QString source_code = "";
+    QTextStream in(&input_file);
+    int ind = 0, j = 0;
+    while (!in.atEnd()){
+        QString line = in.readLine();
+        if ((ind = line.indexOf("//")) != -1)
+            line.remove(ind, line.length() - ind);
+        source_code += line + '\n';
+    }
+    input_file.close();
+    QString sourcecode = "";
+    bool inComment = false;
+    bool inString = false;
+    bool itIsChar = false;
+    for (int i = 0; i < source_code.length() - 1; i++){
+        //sourcecode += " ";
+        if (source_code.mid(i, 2) == "/*")
+            inComment = true;
+        if (source_code.mid(i, 2) == "*/")
+            inComment = false;
+        if (source_code[i] == '"')
+            inString = !inString;
+        if (source_code[i] == "'")
+            itIsChar = !itIsChar;
+        if ((itIsChar == false) && !(source_code[i] == "'")
+                && (inString == false) && !(source_code[i] == '"')
+                && (inComment == false) && (!(source_code[i] == '*' && source_code[i + 1] == '/') && (i > 0 && !(source_code[i - 1] == '*' && source_code[i] == '/'))))
+            sourcecode += source_code[i];
+    }
+    //qDebug() << sourcecode;
+    string code = sourcecode.toStdString();
+    istringstream fin(code);
+    queue<ttype_if_else> toks;
+    string token;
+    char ch;
+    while (fin.get(ch))
+    {
+        if (isalpha(ch))
+            token += ch;
+        if (!isalpha(ch))
+        {
+            if (token == "if")
+                toks.push(ttype_if_else::tif);
+            else if (token == "else")
+                toks.push(ttype_if_else::telse);
+            token = "";
+        }
+        if (ch == ';')
+            toks.push(ttype_if_else::tsemi);
+        if (ch == '{')
+            toks.push(ttype_if_else::topen);
+        if (ch == '}')
+            toks.push(ttype_if_else::tclose);
+    }
+    ttype_if_else prev, curr = ttype_if_else::tsemi;
+    stack<int> depth, secure;
+    depth.push(-1);
+    secure.push(1);
+    int max = 0;
+    while (!toks.empty()){
+        prev = curr;
+        curr = toks.front();
+        toks.pop();
+
+        switch (curr){
+            case tif: // if
+                if (prev == ttype_if_else::tsemi || prev == ttype_if_else::tclose){
+                    while (depth.size() > abs(secure.top()))
+                        depth.pop();
+                }
+                depth.push(depth.top() + 1);
+                break;
+            case topen: // {
+                if (prev == ttype_if_else::telse)
+                    secure.push(-static_cast<int>(depth.size()));
+                else
+                    secure.push(depth.size());
+                break;
+            case tclose: // }
+                switch (prev){
+                    case topen: case tclose: case tsemi:
+                        while (depth.size() > abs(secure.top()))
+                            depth.pop();
+                        if (secure.top() < 0)
+                            depth.pop();
+                        secure.pop();
+                        break;
+                    default: throw runtime_error("closing nothing"); // if/else/other
+                }
+                break;
+            case telse: // else
+                break;
+            case tsemi: // ;
+                if (prev == ttype_if_else::telse){
+                    //qDebug() << depth.top() << " ";
+                    depth.pop();
+                    continue;
+                }
+                if (prev == ttype_if_else::tsemi || prev == ttype_if_else::tclose){
+                    while (depth.size() > abs(secure.top()))
+                        depth.pop();
+                }
+                //qDebug() << depth.top() << " ";
+                break;
+            default:
+                throw runtime_error("Unknown?!");
+                break;
+        }
+        if (depth.top() > max)
+            max = depth.top();
+    }
+    return max;
+}
+
+
+
+vector<int> getMetricsOfCode(QString file_to_get_metrics_path_){
+    QFile file_to_get_metrics(file_to_get_metrics_path_);
+    file_to_get_metrics.open((QIODevice::ReadOnly | QIODevice::Text));
+    QString source_code_ = file_to_get_metrics.readAll();
+    file_to_get_metrics.close();
+
+    int countOfInt = 0,                 //0
+        countOfFloat = 0,               //1
+        countOfDouble = 0,              //2
+        countOfChar = 0,                //3
+        countOfString = 0,              //4
+        countOfBool = 0,                //5
+        countOfFor = 0,                 //6
+        countOfWhile = 0,               //7
+        countOfDoWhile = 0,             //8
+        countOfIf = 0,                  //9
+        countOfIfElse = 0,              //10
+        countOfSwitchCase = 0,          //11
+        countOfSwitchCaseDefault = 0,   //12
+        countOfVoidFunction = 0,        //13
+        countOfIntFunction = 0,         //14
+        countOfFloatFunction = 0,       //15
+        countOfDoubleFunction = 0,      //16
+        countOfCharFunction = 0,        //17
+        countOfStringFunction = 0,      //18
+        countOfBoolFunction = 0,        //19
+        countOfDefine = 0,              //20
+        countOfTypedef = 0,             //21
+        countOfClass = 0,               //22
+        countOfStruct = 0,              //23
+        countOfUnion = 0,               //24
+        nestLvlOfFor = 0,               //25
+        nestLvlOfWhile = 0,             //26
+        nestLvlOfDoWhile = 0,           //27
+        nestLvlOfIfElse = 0,            //28
+        nestLvlOfSwitchCaseDefault = 0;
+
+    countOfInt = count_variables("int ", source_code_);
+    countOfFloat = count_variables("float ", source_code_);
+    countOfDouble = count_variables("double ", source_code_);
+    countOfChar = count_variables("char ", source_code_);
+    countOfString = count_variables("string ", source_code_);
+    countOfBool = count_variables("bool ", source_code_);
+
+    countOfFor = count_key_words("for ", source_code_);
+    countOfFor += count_key_words("for(", source_code_);
+    countOfWhile = count_key_words("while ", source_code_);
+    countOfWhile += count_key_words("while(", source_code_);
+    countOfDoWhile = count_key_words("do\n", source_code_);
+    countOfDoWhile += count_key_words("do ", source_code_);
+    countOfDoWhile += count_key_words("do{", source_code_);
+    countOfWhile -= countOfDoWhile;
+
+    countOfIf = count_key_words("if ", source_code_);
+    countOfIf += count_key_words("if(", source_code_);
+    countOfIfElse = count_key_words("else ", source_code_);
+    countOfIfElse += count_key_words("else\n", source_code_);
+    countOfIf -= countOfIfElse;
+    countOfSwitchCase = count_key_words("switch", source_code_);
+    countOfSwitchCaseDefault = count_key_words("default", source_code_);
+    countOfSwitchCase -= countOfSwitchCaseDefault;
+
+    countOfVoidFunction = count_functions("void", source_code_);
+    countOfIntFunction = count_functions("int", source_code_);
+    countOfFloatFunction = count_functions("float", source_code_);
+    countOfDoubleFunction = count_functions("double", source_code_);
+    countOfCharFunction = count_functions("char", source_code_);
+    countOfStringFunction = count_functions("string", source_code_);
+    countOfBoolFunction = count_functions("bool", source_code_);
+
+    countOfDefine = count_key_words("#define", source_code_);
+    countOfTypedef = count_key_words("typedef", source_code_);
+    countOfClass = count_key_words("class", source_code_);
+    countOfStruct = count_key_words("struct", source_code_);
+    countOfUnion = count_key_words("union", source_code_);
+
+    nestLvlOfFor = count_nest_lvl_of_for(file_to_get_metrics_path_);
+    nestLvlOfWhile = count_nest_lvl_of_while(file_to_get_metrics_path_);
+    nestLvlOfDoWhile = count_nest_lvl_of_do_while(file_to_get_metrics_path_);
+    nestLvlOfIfElse = count_nest_lvl_of_if_else(file_to_get_metrics_path_);
+    nestLvlOfSwitchCaseDefault = count_nest_lvl_of_switch(file_to_get_metrics_path_);
+
+    vector<int> metrics{countOfInt, countOfFloat, countOfDouble, countOfChar, countOfString, countOfBool,
+                       countOfFor, countOfWhile, countOfDoWhile, countOfIf, countOfIfElse, countOfSwitchCase, countOfSwitchCaseDefault,
+                       countOfVoidFunction, countOfIntFunction, countOfFloatFunction, countOfDoubleFunction, countOfCharFunction, countOfStringFunction, countOfBoolFunction,
+                       countOfDefine, countOfTypedef, countOfClass, countOfStruct, countOfUnion,
+                       nestLvlOfFor, nestLvlOfWhile, nestLvlOfDoWhile, nestLvlOfIfElse, nestLvlOfSwitchCaseDefault};
+    return metrics;
+}
+
+QString getTextOfMetrics(vector<int> m_){
+    QString str_ = "Метрика кода\n\nОбщее количество переменных: " + QString::number((m_[0] + m_[1] + m_[2] + m_[3] + m_[4] + m_[5])) + "\n" +
+                    "Среди них:\n" +
+                    "int: " + QString::number(m_[0]) + "\n" +
+                    "float: " + QString::number(m_[1]) + "\n" +
+                    "double: " + QString::number(m_[2]) + "\n" +
+                    "char: " + QString::number(m_[3]) + "\n" +
+                    "string: " + QString::number(m_[4]) + "\n" +
+                    "bool: " + QString::number(m_[5]) + "\n\n" +
+                    "Количество циклов for: " + QString::number(m_[6]) + "\n" +
+                    "Количество циклов while: " + QString::number(m_[7]) + "\n" +
+                    "Количество циклов do-while: " + QString::number(m_[8]) + "\n\n" +
+                    "Количество конструкций if-else: " + QString::number((m_[9] + m_[10])) + "\n" +
+                    "В т.ч. без использования else: " + QString::number(m_[9]) + "\n\n" +
+                    "Количество конструкций switch-case-default: " + QString::number((m_[11] + m_[12])) + "\n" +
+                    "В т.ч. без использования default: " + QString::number(m_[11]) + "\n\n" +
+                    "Общее количество функций: " + QString::number((m_[13] + m_[14] + m_[15] + m_[16] + m_[17] + m_[18] + m_[19])) + "\n" +
+                    "Среди них:\n" +
+                    "void: " + QString::number(m_[13]) + "\n" +
+                    "int: " + QString::number(m_[14]) + "\n" +
+                    "float: " + QString::number(m_[15]) + "\n" +
+                    "double: " + QString::number(m_[16]) + "\n" +
+                    "char: " + QString::number(m_[17]) + "\n" +
+                    "string: " + QString::number(m_[18]) + "\n" +
+                    "bool: " + QString::number(m_[19]) + "\n\n" +
+                    "Количество определений макросов #define: " + QString::number(m_[20]) + "\n\n" +
+                    "Количество пользовательских типов переменных: " + QString::number(m_[21]) + "\n\n" +
+                    "Количество структур: " + QString::number(m_[22]) + "\n" +
+                    "Количество объединений: " + QString::number(m_[23]) + "\n\n" +
+                    "Количество классов: " + QString::number(m_[24]) + "\n\n" +
+                    "Макс. уровень вложенности циклов for: " + QString::number(m_[25]) + "\n" +
+                    "Макс. уровень вложенности циклов while: " + QString::number(m_[26]) + "\n" +
+                    "Макс. уровень вложенности циклов do-while: " + QString::number(m_[27]) + "\n" +
+                    "Макс. уровень вложенности конструкции if-else: " + QString::number(m_[28]) + "\n" +
+                    "Макс. уровень вложенности конструкции switch-case-default: " + QString::number(m_[29]) + "\n";
+    return str_;
+}
+
+void MainWindow::updateMetricsTab(){
+    //вывод метрики кода
+    QString file_to_get_metrics_path = mProjectFile->getFilename();
+    vector<int> metrics = getMetricsOfCode(file_to_get_metrics_path);
+    QString metrics_text = getTextOfMetrics(metrics);
+    mUI.mResults->setMetrics(metrics_text);
+}
+
 void MainWindow::analyzeFiles()
 {
     Settings::terminate(false);
@@ -873,6 +1701,7 @@ Settings MainWindow::getCppcheckSettings()
             result.userDefines += define.toStdString();
         }
 
+        //result.clang = mProjectFile->clangParser;
         result.bugHunting = mProjectFile->bugHunting;
         result.bugHuntingReport = " ";
 
@@ -1539,6 +2368,7 @@ void MainWindow::loadProjectFile(const QString &filePath)
     mUI.mResults->showContracts(mProjectFile->bugHunting);
     updateFunctionContractsTab();
     updateVariableContractsTab();
+    updateMetricsTab();
     if (!loadLastResults())
         analyzeProject(mProjectFile);
 }

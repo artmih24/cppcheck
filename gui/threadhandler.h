@@ -64,7 +64,7 @@ public:
     * @brief Load settings
     * @param settings QSettings to load settings from
     */
-    void loadSettings(const QSettings &settings);
+    void loadSettings(QSettings &settings);
 
     /**
     * @brief Save settings

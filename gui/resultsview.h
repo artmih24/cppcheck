@@ -21,6 +21,7 @@
 #define RESULTSVIEW_H
 
 
+#include <QWidget>
 #include "report.h"
 #include "showtypes.h"
 #include "ui_resultsview.h"
@@ -51,6 +52,8 @@ public:
 
     void setAddedFunctionContracts(const QStringList &addedContracts);
     void setAddedVariableContracts(const QStringList &added);
+
+    void setMetrics(QString metrics_str_);
 
     /**
      * @brief Clear results and statistics and reset progressinfo.

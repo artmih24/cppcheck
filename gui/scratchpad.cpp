@@ -18,6 +18,7 @@
 
 #include "scratchpad.h"
 #include "mainwindow.h"
+#include <QWidget>
 
 ScratchPad::ScratchPad(MainWindow& mainWindow)
     : QDialog(&mainWindow)

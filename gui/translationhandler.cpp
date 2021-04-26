@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "translationhandler.h"
-
 #include <QApplication>
 #include <QFile>
+#include <QDebug>
 #include <QLocale>
 #include <QMessageBox>
 #include <QFileInfo>
-#include <QTranslator>
+#include "translationhandler.h"
 #include "common.h"
 
 

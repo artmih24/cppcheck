@@ -20,9 +20,6 @@
 #define CHECKSTATISTICS_H
 
 #include <QObject>
-#include <QMap>
-#include <QString>
-
 #include "showtypes.h"
 
 /// @addtogroup GUI

@@ -16,9 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "filelist.h"
-
+#include <QString>
 #include <QDir>
+#include <QFileInfo>
+#include "filelist.h"
 #include "pathmatch.h"
 
 QStringList FileList::getDefaultFilters()

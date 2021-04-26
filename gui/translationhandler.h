@@ -20,10 +20,9 @@
 #define TRANSLATIONHANDLER_H
 
 #include <QStringList>
+#include <QTranslator>
 #include <QObject>
 #include <QList>
-
-class QTranslator;
 
 /// @addtogroup GUI
 /// @{

@@ -16,11 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "resultsview.h"
-
 #include <QMessageBox>
 #include <QStandardItemModel>
+#include <QStandardItem>
 #include <QVariant>
+#include <QString>
+#include <QModelIndex>
 #include <QPrinter>
 #include <QPrintDialog>
 #include <QPrintPreviewDialog>
@@ -29,6 +30,7 @@
 #include <QDate>
 #include <QMenu>
 #include <QClipboard>
+#include "resultsview.h"
 #include "common.h"
 #include "erroritem.h"
 #include "txtreport.h"
@@ -36,6 +38,7 @@
 #include "xmlreportv2.h"
 #include "csvreport.h"
 #include "printablereport.h"
+#include "applicationlist.h"
 #include "checkstatistics.h"
 #include "path.h"
 #include "codeeditorstyle.h"
@@ -116,6 +119,11 @@ void ResultsView::setAddedVariableContracts(const QStringList &added)
             delete item;
         mVariableContracts.insert(var);
     }
+}
+
+void ResultsView::setMetrics(QString metrics_str_)
+{
+    mUI.label_6->setText(metrics_str_);
 }
 
 void ResultsView::clear(bool results)

@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "checkstatistics.h"
-
 #include <QDebug>
+#include <QStringList>
+#include "checkstatistics.h"
 
 CheckStatistics::CheckStatistics(QObject *parent)
     : QObject(parent)

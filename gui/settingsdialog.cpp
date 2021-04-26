@@ -16,14 +16,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "settingsdialog.h"
 
+#include <QDialog>
 #include <QWidget>
 #include <QList>
+#include <QListWidgetItem>
+#include <QSettings>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QThread>
-#include <QSettings>
+#include "settingsdialog.h"
 #include "applicationdialog.h"
 #include "applicationlist.h"
 #include "translationhandler.h"

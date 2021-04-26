@@ -26,6 +26,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QTextStream>
+#include <QInputDialog>
 #include <QMessageBox>
 
 // TODO: get/compare functions from header
