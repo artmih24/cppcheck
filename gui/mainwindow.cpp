@@ -1187,7 +1187,7 @@ int count_nest_lvl_of_switch(QString file_){
     }
     std::sort(max_nest_lvls.begin(), max_nest_lvls.end());
     int max = (max_nest_lvls.last() > 0) ? max_nest_lvls.last() : 0;
-    return max;
+    return max - 1;
 }
 
 
